@@ -1,0 +1,20 @@
+{
+  "rulesVersion": "2",
+  "collections": [
+    {
+      "name": "users",
+      "path": "/users/{userId}",
+      "description": "User profiles",
+      "schema": {
+        "name": "string",
+        "email": "string",
+        "photoUrl": "string",
+        "settings": "map"
+      },
+      "permissions": {
+        "read": "request.auth != null && request.auth.uid == userId",
+        "write": "request.auth != null && request.auth.uid == userId"
+      }
+    }
+  ]
+}

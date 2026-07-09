@@ -1,0 +1,6 @@
+{
+  "name": "Lazisna",
+  "description": "Aplikasi donasi online Lembaga Amil Zakat, Infaq, Wakaf, dan Sodaqoh Yasnawa. Mempermudah penghitungan zakat, pembayaran donasi secara aman, dan konsultasi syariah berbasis AI.",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
