@@ -60,6 +60,7 @@ export default function MemberCard({ pastDonations, onRegisterSuccess, onAdminLo
           email: user.email || undefined
         };
         setRegisteredUser(userData);
+        localStorage.setItem("lazisna_member", JSON.stringify(userData));
         onRegisterSuccess(userData.name, userData.wa, userData.photo);
         
         // Load additional settings from Firestore if needed
@@ -77,7 +78,18 @@ export default function MemberCard({ pastDonations, onRegisterSuccess, onAdminLo
         }
 
       } else {
-        setRegisteredUser(null);
+        const saved = localStorage.getItem("lazisna_member");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            setRegisteredUser(parsed);
+            onRegisterSuccess(parsed.name, parsed.wa, parsed.photo);
+          } catch (e) {
+            setRegisteredUser(null);
+          }
+        } else {
+          setRegisteredUser(null);
+        }
       }
     });
     
@@ -470,7 +482,10 @@ export default function MemberCard({ pastDonations, onRegisterSuccess, onAdminLo
   const handleLogout = async () => {
     if (window.confirm("Apakah Anda yakin ingin keluar dari Akun Member? Riwayat donasi tetap aman di perangkat ini.")) {
       try {
+        localStorage.removeItem("lazisna_member");
         await firebaseSignOut(auth);
+        setRegisteredUser(null);
+        onRegisterSuccess("", "");
         setActiveSection("profil");
       } catch (error) {
         console.error("Logout failed:", error);
