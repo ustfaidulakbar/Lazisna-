@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where, Timestamp, onSnapshot, addDoc, updateDoc, increment } from "firebase/firestore";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 export const app = initializeApp(firebaseConfig);
@@ -15,5 +15,5 @@ let cachedAccessToken: string | null = null;
 export const setCachedAccessToken = (token: string | null) => cachedAccessToken = token;
 export const getCachedAccessToken = () => cachedAccessToken;
 
-export { signInWithPopup, signOut };
-export { doc, setDoc, getDoc, collection, getDocs, query, where, Timestamp };
+export { signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword };
+export { doc, setDoc, getDoc, collection, getDocs, query, where, Timestamp, onSnapshot, addDoc, updateDoc, increment };

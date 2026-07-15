@@ -6,9 +6,9 @@ import {
   Settings, User, Camera, Bell, Smartphone, Clock, BadgeCheck, Plane, Star, Download, BarChart2, Fingerprint, Gift, Mail
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut, db, doc, getDoc, setDoc, setCachedAccessToken, getCachedAccessToken } from "../lib/firebase";
+import { auth, googleProvider, signInWithPopup, signOut as firebaseSignOut, db, doc, getDoc, setDoc, setCachedAccessToken, getCachedAccessToken, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "../lib/firebase";
 import { GoogleAuthProvider } from "firebase/auth";
-
+import { GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 interface MemberCardProps {
   pastDonations: DonationRecord[];
   onRegisterSuccess: (name: string, wa: string, photo?: string) => void;
@@ -22,6 +22,9 @@ export default function MemberCard({ pastDonations, onRegisterSuccess, onAdminLo
   const [wa, setWa] = useState<string>("");
   const [registerPhoto, setRegisterPhoto] = useState<string>("");
   const [registeredUser, setRegisteredUser] = useState<{ name: string; wa: string; photo?: string; uid?: string; email?: string } | null>(null);
+  const [password, setPassword] = useState<string>("");
+  const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<string>("");
   const [copiedReceiptId, setCopiedReceiptId] = useState<string | null>(null);
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const [sendingSummary, setSendingSummary] = useState<boolean>(false);
@@ -126,6 +129,8 @@ export default function MemberCard({ pastDonations, onRegisterSuccess, onAdminLo
       try {
         const userDocRef = doc(db, "users", registeredUser.uid);
         await setDoc(userDocRef, { settings: updatedSettings }, { merge: true });
+      setRegisteredUser(userData);
+      onRegisterSuccess(userData.name, userData.wa, userData.photo);
       } catch (e) {
         console.error("Failed to save settings to Firestore:", e);
       }
@@ -156,6 +161,8 @@ export default function MemberCard({ pastDonations, onRegisterSuccess, onAdminLo
         photoUrl: userData.photo,
         lastLogin: new Date()
       }, { merge: true });
+      setRegisteredUser(userData);
+      onRegisterSuccess(userData.name, userData.wa, userData.photo);
       
     } catch (error) {
       console.error("Google sign in failed:", error);
@@ -661,28 +668,86 @@ Semoga dilipatgandakan rezekinya oleh Allah SWT. Aamiin.`;
             </p>
           </div>
 
-          <form onSubmit={(e) => {
+          <form onSubmit={async (e) => {
             e.preventDefault();
-            // Handle mock email/wa login
-            const userData = {
-              name: "Donatur",
-              wa: name.includes("@") ? "08123456789" : name,
-              email: name.includes("@") ? name : undefined,
-              uid: "mock-uid-" + Date.now()
-            };
-            setRegisteredUser(userData);
-            onRegisterSuccess(userData.name, userData.wa, undefined);
+            setAuthError("");
+            try {
+              if (!name.includes("@")) {
+                setAuthError("Harap gunakan alamat email yang valid");
+                return;
+              }
+              if (isLoginMode) {
+                // Login
+                const userCredential = await signInWithEmailAndPassword(auth, name, password);
+                const user = userCredential.user;
+                const userData = {
+                  name: user.displayName || name.split('@')[0],
+                  wa: user.phoneNumber || "-",
+                  email: user.email || undefined,
+                  uid: user.uid
+                };
+                setRegisteredUser(userData);
+                onRegisterSuccess(userData.name, userData.wa, undefined);
+              } else {
+                // Register
+                const userCredential = await createUserWithEmailAndPassword(auth, name, password);
+                const user = userCredential.user;
+                const userData = {
+                  name: user.displayName || name.split('@')[0],
+                  wa: user.phoneNumber || "-",
+                  email: user.email || undefined,
+                  uid: user.uid
+                };
+                // Save user profile to Firestore
+                await setDoc(doc(db, "users", user.uid), {
+                  name: userData.name,
+                  email: userData.email,
+                  lastLogin: new Date()
+                }, { merge: true });
+                setRegisteredUser(userData);
+                onRegisterSuccess(userData.name, userData.wa, undefined);
+              }
+            } catch (error: any) {
+              console.error("Auth error:", error);
+              if (error.code === 'auth/email-already-in-use') {
+                setAuthError("Email sudah terdaftar. Silakan login.");
+                setIsLoginMode(true);
+              } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                setAuthError("Email atau password salah.");
+              } else {
+                setAuthError("Terjadi kesalahan. Coba lagi.");
+              }
+            }
           }} className="space-y-4 pt-2">
+            {authError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs border border-red-100 flex items-center gap-2">
+                <Settings className="w-4 h-4 shrink-0" />
+                {authError}
+              </div>
+            )}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email atau Nomor WA</label>
-              <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full text-xs rounded-xl border border-slate-200 p-3 focus:border-emerald-500 focus:outline-none" placeholder="08... atau email@domain.com" />
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email</label>
+              <input required type="email" value={name} onChange={e => setName(e.target.value)} className="w-full text-xs rounded-xl border border-slate-200 p-3 focus:border-emerald-500 focus:outline-none" placeholder="email@domain.com" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Password</label>
+              <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full text-xs rounded-xl border border-slate-200 p-3 focus:border-emerald-500 focus:outline-none" placeholder="Masukkan password" />
             </div>
             <button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2"
             >
-              Lanjutkan
+              {isLoginMode ? "Masuk" : "Daftar"}
             </button>
+            <div className="text-center">
+              <button 
+                type="button" 
+                onClick={() => { setIsLoginMode(!isLoginMode); setAuthError(""); }}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold"
+              >
+                {isLoginMode ? "Belum punya akun? Daftar di sini" : "Sudah punya akun? Masuk di sini"}
+              </button>
+            </div>
             <div className="relative flex py-2 items-center">
               <div className="flex-grow border-t border-slate-200/80"></div>
               <span className="flex-shrink-0 mx-3 text-[10px] text-slate-400 font-medium">ATAU</span>

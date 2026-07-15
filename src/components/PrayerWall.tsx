@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Prayer } from "../types";
 import { MessageSquare, Heart, ThumbsUp, Send, CheckCircle2, Moon, Calendar } from "lucide-react";
+import { db, collection, onSnapshot, addDoc, doc, updateDoc, increment } from "../lib/firebase";
 
 export default function PrayerWall() {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
@@ -8,7 +9,7 @@ export default function PrayerWall() {
   const [prayerText, setPrayerText] = useState<string>("");
   const [selectedProgram, setSelectedProgram] = useState<string>("Infaq");
   
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [postSuccess, setPostSuccess] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -17,34 +18,24 @@ export default function PrayerWall() {
   const [aminTrack, setAminTrack] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetchPrayers();
-  }, []);
-
-  const fetchPrayers = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/prayers");
-      if (res.ok) {
-        const data = await res.json();
-        setPrayers(data);
-      }
-    } catch (err) {
-      console.error("Failed to load prayers:", err);
-    } finally {
+    const unsubscribe = onSnapshot(collection(db, "prayers"), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Prayer[];
+      // sort descending by createdAt manually
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setPrayers(list);
       setLoading(false);
-    }
-  };
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleAmin = async (id: string) => {
     if (aminTrack[id]) return; // Allow only once per session
 
     try {
-      const res = await fetch(`/api/prayers/${id}/amin`, { method: "POST" });
-      if (res.ok) {
-        const updatedPrayer = await res.json();
-        setPrayers(prayers.map(p => p.id === id ? { ...p, aminCount: updatedPrayer.aminCount } : p));
-        setAminTrack({ ...aminTrack, [id]: true });
-      }
+      await updateDoc(doc(db, "prayers", id), {
+        aminCount: increment(1)
+      });
+      setAminTrack({ ...aminTrack, [id]: true });
     } catch (err) {
       console.error("Failed to send amin:", err);
     }
@@ -60,26 +51,18 @@ export default function PrayerWall() {
     setSubmitting(true);
     setErrorMsg("");
     try {
-      const res = await fetch("/api/prayers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.substring(0, 50),
-          prayer: prayerText.substring(0, 300),
-          program: selectedProgram
-        })
+      await addDoc(collection(db, "prayers"), {
+        name: name.substring(0, 50),
+        prayer: prayerText.substring(0, 300),
+        program: selectedProgram,
+        createdAt: new Date().toISOString(),
+        aminCount: 0
       });
 
-      if (res.ok) {
-        const newPrayer = await res.json();
-        setPrayers([newPrayer, ...prayers]);
-        setName("");
-        setPrayerText("");
-        setPostSuccess(true);
-        setTimeout(() => setPostSuccess(false), 3000);
-      } else {
-        setErrorMsg("Gagal mengirim doa. Silakan coba kembali.");
-      }
+      setName("");
+      setPrayerText("");
+      setPostSuccess(true);
+      setTimeout(() => setPostSuccess(false), 3000);
     } catch (err) {
       setErrorMsg("Kesalahan jaringan. Gagal terhubung ke server.");
     } finally {

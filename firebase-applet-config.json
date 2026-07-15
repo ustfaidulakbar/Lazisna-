@@ -3,7 +3,9 @@
   "appId": "1:737717472302:web:0f4f008b3a8908ec5663bf",
   "apiKey": "AIzaSyBPIuTAkrDBG10GzCzvTMjQtEu1Td-Rt8E",
   "authDomain": "prime-net-vk8sk.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-lazisna-c230f338-0b8b-41f7-be21-528ffcb1185b",
   "storageBucket": "prime-net-vk8sk.firebasestorage.app",
   "messagingSenderId": "737717472302",
-  "measurementId": ""
+  "measurementId": "",
+  "oAuthClientId": "737717472302-1j1t8vu5dgmkhacjpaelbc67q0kk8hsb.apps.googleusercontent.com"
 }

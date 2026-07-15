@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Users, Copy, Wallet, Target, Award, ArrowRight, Share2, Ticket, CheckCircle2, Calculator, Trophy, QrCode, Bell, Briefcase, MessageSquare, Download, Image as ImageIcon } from "lucide-react";
 import QRCode from "react-qr-code";
+import Leaderboard from "./Leaderboard";
 
 interface AgentDashboardProps {
   onBack: () => void;
@@ -21,7 +22,7 @@ export default function AgentDashboard({ onBack }: AgentDashboardProps) {
     referralLink: "https://lazisna.org/donasi?ref=RIJAL-778XQ",
     totalDonors: 48, // Progress towards 50
     totalDonations: 48500000, // Progress towards 50 Juta (48.5 Juta)
-    commissionRate: 0.06, // 6%
+    totalPoints: 4850, // 1 point per 10.000 IDR
   };
 
   useEffect(() => {
@@ -52,22 +53,14 @@ export default function AgentDashboard({ onBack }: AgentDashboardProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const leaderboardData = [
-    { rank: 1, name: "Budi Santoso", totalCommission: 12500000 },
-    { rank: 2, name: "Ahmad Dahlan", totalCommission: 9800000 },
-    { rank: 3, name: "Siti Aminah", totalCommission: 7600000 },
-    { rank: 4, name: "Ust. Faidul Akbar", totalCommission: 2070000 }, // Agent's current approx commission
-    { rank: 5, name: "Reza Rahadian", totalCommission: 1500000 }
-  ];
-
   const referralHistory = [
-    { id: "ref-1", name: "Hamba Allah", amount: 1000000, date: "09 Jul 2026", status: "Berhasil" },
-    { id: "ref-2", name: "Budi Santoso", amount: 500000, date: "08 Jul 2026", status: "Berhasil" },
-    { id: "ref-3", name: "Ibu Siti", amount: 250000, date: "05 Jul 2026", status: "Pending" },
-    { id: "ref-4", name: "Keluarga Ahmad", amount: 2000000, date: "02 Jul 2026", status: "Berhasil" },
+    { id: "ref-1", name: "Hamba Allah", amount: 1000000, points: 100, date: "09 Jul 2026", status: "Berhasil" },
+    { id: "ref-2", name: "Budi Santoso", amount: 500000, points: 50, date: "08 Jul 2026", status: "Berhasil" },
+    { id: "ref-3", name: "Ibu Siti", amount: 250000, points: 25, date: "05 Jul 2026", status: "Pending" },
+    { id: "ref-4", name: "Keluarga Ahmad", amount: 2000000, points: 200, date: "02 Jul 2026", status: "Berhasil" },
   ];
 
-  const commissionEarned = agentData.totalDonations * agentData.commissionRate;
+  const commissionEarned = agentData.totalPoints;
   
   const targetDonors = 50;
   const targetDonations = 50000000;
@@ -150,17 +143,17 @@ export default function AgentDashboard({ onBack }: AgentDashboardProps) {
         </div>
       </div>
 
-      {/* Commission Section */}
+      {/* Points Section */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-4">
         <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-          <Wallet className="w-6 h-6" />
+          <Award className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <p className="text-xs text-slate-500 mb-0.5">Komisi Tersedia (6%)</p>
-          <h4 className="text-xl font-black text-slate-800">{formatRp(commissionEarned)}</h4>
+          <p className="text-xs text-slate-500 mb-0.5">Saldo Poin Anda</p>
+          <h4 className="text-xl font-black text-slate-800">{new Intl.NumberFormat("id-ID").format(agentData.totalPoints)} Pts</h4>
         </div>
         <button className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200">
-          Tarik
+          Tukar
         </button>
       </div>
 
@@ -330,56 +323,15 @@ export default function AgentDashboard({ onBack }: AgentDashboardProps) {
           
           <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex justify-between items-center">
             <div>
-              <p className="text-xs text-emerald-700 mb-0.5">Estimasi Komisi Anda</p>
-              <p className="text-lg font-black text-emerald-800">{formatRp(simulationTarget * agentData.commissionRate)}</p>
+              <p className="text-xs text-emerald-700 mb-0.5">Estimasi Poin Anda</p>
+              <p className="text-lg font-black text-emerald-800">{new Intl.NumberFormat("id-ID").format(simulationTarget / 10000)} Pts</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Leaderboard Section */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center">
-            <Trophy className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-800">Top Rijal Lazisna</h3>
-            <p className="text-[10px] text-slate-500">Peringkat agen berdasarkan komisi</p>
-          </div>
-        </div>
-        
-        <div className="space-y-3 mt-4">
-          {leaderboardData.map((agent) => (
-            <div 
-              key={agent.rank} 
-              className={`flex items-center gap-3 p-3 rounded-xl border ${agent.name === agentData.name ? 'border-emerald-200 bg-emerald-50' : 'border-slate-100 bg-slate-50/50'}`}
-            >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ${
-                agent.rank === 1 ? 'bg-yellow-400 text-yellow-900 shadow-sm' : 
-                agent.rank === 2 ? 'bg-slate-300 text-slate-700 shadow-sm' : 
-                agent.rank === 3 ? 'bg-amber-600/30 text-amber-900 shadow-sm' : 
-                'bg-slate-100 text-slate-500'
-              }`}>
-                #{agent.rank}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-bold truncate ${agent.name === agentData.name ? 'text-emerald-800' : 'text-slate-800'}`}>
-                  {agent.name} {agent.name === agentData.name && "(Anda)"}
-                </p>
-                <p className="text-[10px] text-slate-500">Komisi: <span className="font-semibold text-slate-700">{formatRp(agent.totalCommission)}</span></p>
-              </div>
-              {agent.rank <= 3 && (
-                <Trophy className={`w-4 h-4 ${
-                  agent.rank === 1 ? 'text-yellow-500' : 
-                  agent.rank === 2 ? 'text-slate-400' : 
-                  'text-amber-600'
-                }`} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      <Leaderboard currentAgentName={agentData.name} />
 
       {/* Toolkit Agen Section */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
@@ -461,7 +413,7 @@ export default function AgentDashboard({ onBack }: AgentDashboardProps) {
               <div className="text-right">
                 <p className="text-xs text-slate-500">Donasi: {formatRp(ref.amount)}</p>
                 <p className="text-sm font-bold text-emerald-600">
-                  + {formatRp(ref.amount * 0.06)}
+                  + {ref.points} Pts
                 </p>
               </div>
             </div>

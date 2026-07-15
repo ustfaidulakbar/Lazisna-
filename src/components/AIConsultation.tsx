@@ -120,7 +120,7 @@ export default function AIConsultation({ onPayZakat, initialTab = "chat" }: AICo
       <div className="bg-emerald-600 px-5 py-5 rounded-b-[2rem] text-white shrink-0 relative overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
         <h2 className="text-xl font-bold font-sans tracking-tight flex items-center gap-2 relative z-10">
-          <Bot className="w-6 h-6" /> Konsultasi Syari'ah AI
+          <Bot className="w-6 h-6" /> Konsultasi Syari'ah
         </h2>
         <p className="text-emerald-50 text-xs mt-1 relative z-10">Tanya Jawab seputar ZISWAF dan Hukum Agama</p>
       </div>
@@ -136,7 +136,7 @@ export default function AIConsultation({ onPayZakat, initialTab = "chat" }: AICo
           }`}
         >
           <Bot className="w-4 h-4" />
-          <span>Tanya Ustadz AI</span>
+          <span>Konsultasi Syariah</span>
         </button>
         <button
           onClick={() => setSubTab("kalkulator")}

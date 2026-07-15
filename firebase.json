@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "database": "ai-studio-lazisna-c230f338-0b8b-41f7-be21-528ffcb1185b",
+    "rules": "firestore.rules"
+  }
+}

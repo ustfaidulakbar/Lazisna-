@@ -28,6 +28,7 @@ import {
   BookOpen, ShieldCheck, Compass, BadgeCheck, Star, Plane, Video, ShoppingBag, Users, Store, HelpCircle,
   Zap, Map, UserCheck, Package, Hammer, Bed, Plus
 } from "lucide-react";
+import { db, collection, onSnapshot, doc, setDoc, auth, onAuthStateChanged } from "./lib/firebase";
 
 const IconMap: any = {
   Zap, Heart, Users, Map, UserCheck, Package, Hammer, Bed, Gift,
@@ -126,6 +127,18 @@ export default function App() {
       setIsAgent(true);
     }
 
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const memberData = {
+          name: user.displayName || user.email || "Hamba Allah",
+          wa: user.phoneNumber || "-",
+          photo: user.photoURL || undefined
+        };
+        setRegisteredMember(memberData);
+        localStorage.setItem("lazisna_member", JSON.stringify(memberData));
+      }
+    });
+
     // Monthly routine donation reminder check
     try {
       const settings = JSON.parse(localStorage.getItem("lazisna_settings") || "{}");
@@ -190,54 +203,53 @@ export default function App() {
       if (weeklyReminderInterval) {
         clearInterval(weeklyReminderInterval);
       }
+      unsubscribeAuth();
     };
   }, []);
 
   // Fetch reactive datasets from server (for real-time updates and notification broadcast)
   useEffect(() => {
     let previousNotifCount = 0;
-    const fetchServerData = async () => {
-      try {
-        const [pRes, nRes, notifRes] = await Promise.all([
-          fetch("/api/programs"),
-          fetch("/api/news"),
-          fetch("/api/notifications")
-        ]);
-
-        if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
-          const list = await pRes.json();
-          if (list && list.length > 0) setActivePrograms(list);
-        }
-
-        if (nRes.ok && nRes.headers.get("content-type")?.includes("application/json")) {
-          const list = await nRes.json();
-          if (list && list.length > 0) setNewsList(list);
-        }
-
-        if (notifRes.ok && notifRes.headers.get("content-type")?.includes("application/json")) {
-          const list: SystemNotification[] = await notifRes.json();
-          setNotifications(list);
-          
-          // Trigger a beautiful live floating toast when a new notification dispatches!
-          if (previousNotifCount > 0 && list.length > previousNotifCount) {
-            const newest = list[0];
-            setLiveToast(newest);
-            // Hide toast after 5 seconds automatically
-            setTimeout(() => setLiveToast(null), 5000);
-          }
-          previousNotifCount = list.length;
-        }
-      } catch (err: any) {
-        if (err.name !== 'TypeError' || err.message !== 'Failed to fetch') {
-          console.error("Failed to synchronise real-time applet data:", err);
+    
+    const unsubscribePrograms = onSnapshot(collection(db, "programs"), async (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Program[];
+      if (list.length > 0) {
+        setActivePrograms(list);
+      } else {
+        console.log("Seeding data since programs is empty...");
+        try {
+          const pPromises = PROGRAMS.map(p => setDoc(doc(db, "programs", p.id), p));
+          const nPromises = NEWS_REPORTS.map(n => setDoc(doc(db, "news", n.id), n));
+          await Promise.all([...pPromises, ...nPromises]);
+          console.log("Seeded successfully");
+        } catch (e) {
+          console.error("Seeding error:", e);
         }
       }
-    };
+    });
 
-    fetchServerData();
-    // Poll the server every 5 seconds for a real-time reactive feel
-    const interval = setInterval(fetchServerData, 5000);
-    return () => clearInterval(interval);
+    const unsubscribeNews = onSnapshot(collection(db, "news"), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as NewsReport[];
+      if (list.length > 0) setNewsList(list);
+    });
+
+    const unsubscribeNotifications = onSnapshot(collection(db, "notifications"), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SystemNotification[];
+      setNotifications(list);
+      
+      if (previousNotifCount > 0 && list.length > previousNotifCount) {
+        const newest = list[0]; // Assuming ordered by something, or just the first in array
+        setLiveToast(newest);
+        setTimeout(() => setLiveToast(null), 5000);
+      }
+      previousNotifCount = list.length;
+    });
+
+    return () => {
+      unsubscribePrograms();
+      unsubscribeNews();
+      unsubscribeNotifications();
+    };
   }, []);
 
   // Save donation to LocalStorage
@@ -276,7 +288,9 @@ export default function App() {
   };
 
   const handleRegisterSuccess = (name: string, wa: string, photo?: string) => {
-    setRegisteredMember({ name, wa, photo });
+    const memberData = { name, wa, photo };
+    setRegisteredMember(memberData);
+    localStorage.setItem("lazisna_member", JSON.stringify(memberData));
     
     // Automatically unlock the Umroh register and badge features by adding a dummy donation
     const currentTotal = pastDonations
@@ -449,6 +463,17 @@ export default function App() {
           </div>
         )}
 
+        {/* Global Fixed Header */}
+        {activeTab === "beranda" && !isAdminActive && !isCheckoutOpen && (
+          <div className="absolute top-0 inset-x-0 z-50 shadow-sm">
+            <Header 
+              onNotificationClick={() => setShowNotificationAlert(true)} 
+              isAgent={isAgent}
+              onAgentClick={() => setActiveTab("agen")}
+            />
+          </div>
+        )}
+
         {/* Content Area - scrolls independently */}
         <div className="flex-1 overflow-y-auto pb-24">
           
@@ -473,20 +498,12 @@ export default function App() {
             />
           ) : (
             <>
-              {/* BRAND HEADER */}
-              <div className="relative z-50">
-                <Header 
-                  onNotificationClick={() => setShowNotificationAlert(true)} 
-                  isAgent={isAgent}
-                  onAgentClick={() => setActiveTab("agen")}
-                />
-              </div>
-
               {/* DYNAMIC VIEWS SWITCHER */}
               
               {/* 1. HOME TAB */}
               {activeTab === "beranda" && (
-                <div className="space-y-5 px-5 pt-4 pb-12 relative z-10">
+                <>
+                  <div className="space-y-5 px-5 pt-[220px] pb-12 relative z-10">
                   
                   {/* Kindness Member Dashboard Welcome banner */}
                   <div className="bg-white rounded-2xl p-4 shadow-md border border-slate-100 space-y-3">
@@ -958,7 +975,7 @@ export default function App() {
                       >
                         <HelpCircle className="w-5 h-5 text-amber-600 group-hover:scale-110 transition-transform" />
                         <div>
-                          <h4 className="text-[11px] font-bold">Tanya Jawab Syari'ah</h4>
+                          <h4 className="text-[11px] font-bold">Konsultasi Syariah</h4>
                           <p className="text-[9px] text-amber-600/70 mt-0.5 leading-tight">Konsultasi seputar hukum Islam</p>
                         </div>
                       </button>
@@ -1017,6 +1034,7 @@ export default function App() {
                   </div>
 
                 </div>
+                </>
               )}
 
               {/* 2. ZAKAT CALCULATOR TAB (LEGACY SUPPORT) */}
@@ -1142,7 +1160,7 @@ export default function App() {
               href="https://wa.me/6281902366526?text=Assalamualaikum%20Tanya%20Lazisna,%20saya%20ingin%20berkonsultasi..."
               target="_blank"
               rel="noopener noreferrer"
-              className="fixed bottom-20 right-4 z-[60] bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-2 px-3.5 rounded-full shadow-lg hover:shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5 text-[11px] border border-emerald-400/20"
+              className="absolute bottom-20 right-4 z-[60] bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-2 px-3.5 rounded-full shadow-lg hover:shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5 text-[11px] border border-emerald-400/20"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>

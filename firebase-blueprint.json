@@ -1,20 +1,139 @@
 {
-  "rulesVersion": "2",
-  "collections": [
-    {
-      "name": "users",
-      "path": "/users/{userId}",
-      "description": "User profiles",
-      "schema": {
-        "name": "string",
-        "email": "string",
-        "photoUrl": "string",
-        "settings": "map"
+  "entities": {
+    "Program": {
+      "title": "Program",
+      "description": "Donation program or campaign",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Zakat", "Infaq", "Wakaf", "Sodaqoh", "Hibah", "Fidyah"] },
+        "image": { "type": "string" },
+        "targetAmount": { "type": "number" },
+        "collectedAmount": { "type": "number" },
+        "donorsCount": { "type": "number" },
+        "daysLeft": { "type": "number" },
+        "description": { "type": "string" },
+        "location": { "type": "string" }
       },
-      "permissions": {
-        "read": "request.auth != null && request.auth.uid == userId",
-        "write": "request.auth != null && request.auth.uid == userId"
-      }
+      "required": ["title", "category", "targetAmount", "collectedAmount", "donorsCount", "daysLeft", "description", "location"]
+    },
+    "DonationRecord": {
+      "title": "Donation Record",
+      "description": "Record of a user's donation",
+      "type": "object",
+      "properties": {
+        "donorName": { "type": "string" },
+        "donorWa": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "programId": { "type": "string" },
+        "programTitle": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "date": { "type": "string" },
+        "prayer": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Success", "Rejected"] },
+        "invoiceId": { "type": "string" },
+        "donationType": { "type": "string" },
+        "itemType": { "type": "string" },
+        "itemDescription": { "type": "string" }
+      },
+      "required": ["donorName", "donorWa", "amount", "category", "programId", "programTitle", "paymentMethod", "date", "status", "invoiceId"]
+    },
+    "NewsReport": {
+      "title": "News Report",
+      "description": "News article or report",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "image": { "type": "string" },
+        "date": { "type": "string" },
+        "summary": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["title", "image", "date", "summary", "category"]
+    },
+    "Ustadz": {
+      "title": "Ustadz",
+      "description": "Ustadz profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "wa": { "type": "string" },
+        "specialization": { "type": "string" },
+        "image": { "type": "string" },
+        "ig": { "type": "string" },
+        "yt": { "type": "string" }
+      },
+      "required": ["name", "address", "wa", "specialization", "image"]
+    },
+    "Prayer": {
+      "title": "Prayer",
+      "description": "Prayer request",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "prayer": { "type": "string" },
+        "program": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "aminCount": { "type": "number" }
+      },
+      "required": ["name", "prayer", "createdAt", "aminCount"]
+    },
+    "BankAccount": {
+      "title": "Bank Account",
+      "description": "Bank account for donation",
+      "type": "object",
+      "properties": {
+        "bankName": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "accountHolder": { "type": "string" },
+        "iconType": { "type": "string", "enum": ["qris", "bank", "manual"] },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["bankName", "accountNumber", "accountHolder", "iconType", "isActive"]
+    },
+    "SystemNotification": {
+      "title": "System Notification",
+      "description": "Notification from system",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning"] }
+      },
+      "required": ["title", "content", "createdAt", "type"]
     }
-  ]
+  },
+  "firestore": {
+    "programs": {
+      "schema": { "$ref": "#/entities/Program" },
+      "description": "Active donation programs"
+    },
+    "donations": {
+      "schema": { "$ref": "#/entities/DonationRecord" },
+      "description": "All donations"
+    },
+    "news": {
+      "schema": { "$ref": "#/entities/NewsReport" },
+      "description": "News reports"
+    },
+    "ustadz": {
+      "schema": { "$ref": "#/entities/Ustadz" },
+      "description": "Ustadz directory"
+    },
+    "prayers": {
+      "schema": { "$ref": "#/entities/Prayer" },
+      "description": "Prayer wall"
+    },
+    "bankAccounts": {
+      "schema": { "$ref": "#/entities/BankAccount" },
+      "description": "Bank accounts for donations"
+    },
+    "notifications": {
+      "schema": { "$ref": "#/entities/SystemNotification" },
+      "description": "System notifications"
+    }
+  }
 }
